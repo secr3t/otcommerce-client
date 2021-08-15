@@ -1,0 +1,1 @@
+module "github.com/secr3t/otcommerce-client"
