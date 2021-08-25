@@ -2,108 +2,110 @@ package client
 
 import (
 	"github.com/secr3t/otcommerce-client/model"
-	"strconv"
+	"log"
 	"sync"
 	"time"
 )
 
-const defaultLimit = 400
+const defaultLimit = 1000
 
 type CompoundClient struct {
-	ListApiKey   string
-	DetailApiKey string
-	SearchLimit  int
+	ApiKey      string
+	SearchLimit int
 }
 
-func NewCompoundClient(listApiKey string, detailApiKey string, searchLimit int) *CompoundClient {
+func NewCompoundClient(apiKey string, searchLimit int) *CompoundClient {
 	if searchLimit > defaultLimit {
 		searchLimit = defaultLimit
 	}
 	return &CompoundClient{
-		ListApiKey:   listApiKey,
-		DetailApiKey: detailApiKey,
-		SearchLimit:  searchLimit,
+		ApiKey:      apiKey,
+		SearchLimit: searchLimit,
 	}
 }
 
-func (c *CompoundClient) SearchAndGetDetailsOneReqOneTime(param *SearchParam) chan model.Detail {
-	var wg sync.WaitGroup
+func (c *CompoundClient) SearchAndGetDetail(param *SearchParam) ([]model.DetailItem, error) {
 	limit := c.SearchLimit
-	sc := NewSearchClient(c.ListApiKey)
+	sc := NewSearchClient(c.ApiKey)
+	dc := NewDetailClient(c.ApiKey)
+	detailItems := make([]model.DetailItem, 0)
 
-	search := sc.SearchItems(*param)
+	result, err := sc.SearchItems(*param)
 
-	detailChan := make(chan model.Detail, limit)
+	if err != nil {
+		return nil, err
+	}
+	if limit > result.TotalCount {
+		limit = result.TotalCount
+	}
 
-	wg.Add(1)
-	go func() {
-		if search.IsSuccess() {
-			c.backgroundDetailRequestItemsSequential(&wg, search.Result.Item, detailChan)
-			if limit > search.Result.TotalResults {
-				limit = search.Result.TotalResults
-			}
+	limit -= len(result.Items)
 
-			pageSize, _ := strconv.Atoi(search.Result.PageSize)
-			limit -= pageSize
+	for _, item := range result.Items {
+		detailItem, err := dc.GetDetail(item)
+		if err != nil {
+			log.Printf("id %s fetch failed", detailItem.NumIid)
+		} else {
+			detailItems = append(detailItems, *detailItem)
+		}
+	}
 
-			for ; limit > 0; limit -= pageSize {
-				if param.Page == 0 {
-					param.Page = 2
-				} else {
-					param.Page += 1
-				}
-				nextSearch := sc.SearchItems(*param)
-				c.backgroundDetailRequestItemsSequential(&wg, nextSearch.Result.Item, detailChan)
+	param.Page += result.FrameSize
+
+	for ;limit > 0; limit -= len(result.Items) {
+		result, err = sc.SearchItems(*param)
+		for _, item := range result.Items {
+			detailItem, err := dc.GetDetail(item)
+			if err != nil {
+				log.Printf("id %s fetch failed", detailItem.NumIid)
+			} else {
+				detailItems = append(detailItems, *detailItem)
 			}
 		}
-		wg.Done()
-	}()
 
-	defer func() {
-		go func() {
-			wg.Wait()
-			close(detailChan)
-		}()
-	}()
+		param.Page += result.FrameSize
+	}
 
-	return detailChan
+	return detailItems, nil
 }
 
-func (c *CompoundClient) SearchAndGetDetailsMultiRequestOneTime(param *SearchParam) chan model.Detail {
-	var wg sync.WaitGroup
-	wg.Add(1)
+func (c *CompoundClient) SearchTilLimit(param *SearchParam) []model.Item {
 	limit := c.SearchLimit
-	sc := NewSearchClient(c.ListApiKey)
+	sc := NewSearchClient(c.ApiKey)
 
-	search := sc.SearchItems(*param)
+	result, err := sc.SearchItems(*param)
 
-	if !search.IsSuccess() {
+	if err != nil {
 		return nil
 	}
 
-	detailChan := make(chan model.Detail, limit)
+	items := result.Items
 
-	go func() {
-		c.backgroundDetailRequestItems(&wg, search.Result.Item, detailChan)
-		if limit > search.Result.TotalResults {
-			limit = search.Result.TotalResults
-		}
+	if limit > result.TotalCount {
+		limit = result.TotalCount
+	}
 
-		pageSize, _ := strconv.Atoi(search.Result.PageSize)
-		limit -= pageSize
+	for ;limit > len(items); {
+		param.Page += len(result.Items)
+		result, err = sc.SearchItems(*param)
+		items = append(items, result.Items...)
+	}
 
-		for ; limit > 0; limit -= pageSize {
-			if param.Page == 0 {
-				param.Page = 2
-			} else {
-				param.Page += 1
-			}
-			nextSearch := sc.SearchItems(*param)
-			c.backgroundDetailRequestItems(&wg, nextSearch.Result.Item, detailChan)
-		}
-		time.Sleep(5 * time.Second)
-		wg.Done()
-	}()
+	return items
+}
+
+func (c *CompoundClient) SearchAndGetDetailsMultiRequestOneTime(param *SearchParam) (chan model.DetailItem, error) {
+	var wg sync.WaitGroup
+	items := c.SearchTilLimit(param)
+
+	itemLen := len(items)
+	wg.Add(itemLen)
+
+	detailChan := make(chan model.DetailItem, itemLen)
+
+	for i, item := range items {
+		go c.backgroundDetailRequestItem(&wg, item, detailChan, int64(i))
+	}
 
 	defer func() {
 		go func() {
@@ -112,32 +114,19 @@ func (c *CompoundClient) SearchAndGetDetailsMultiRequestOneTime(param *SearchPar
 		}()
 	}()
 
-	return detailChan
+	return detailChan, nil
 }
 
-func (c *CompoundClient) backgroundDetailRequestItemsSequential(wg *sync.WaitGroup, items []model.SearchItem, ch chan model.Detail) {
-	for _, item := range items {
-		c.backgroundDetailRequestItem(wg, item, ch)
+func (c *CompoundClient) backgroundDetailRequestItem(wg *sync.WaitGroup, item model.Item, ch chan model.DetailItem, sleepDelta int64) {
+	time.Sleep(time.Millisecond * time.Duration(sleepDelta * 200))
+	dc := NewDetailClient(c.ApiKey)
+
+	detail, err := dc.GetDetail(item)
+
+	if err == nil {
+		ch <- *detail
+	} else {
+		log.Println(err)
 	}
-}
-
-func (c *CompoundClient) backgroundDetailRequestItems(wg *sync.WaitGroup, items []model.SearchItem, ch chan model.Detail) {
-	for _, item := range items {
-		time.Sleep(time.Second)
-		go c.backgroundDetailRequestItem(wg, item, ch)
-	}
-}
-
-func (c *CompoundClient) backgroundDetailRequestItem(wg *sync.WaitGroup, item model.SearchItem, ch chan model.Detail) {
-	wg.Add(1)
-
-	dc := NewDetailClient(c.DetailApiKey)
-
-	detail := dc.GetDetail(item.NumIid)
-
-	if detail.IsSuccess() {
-		ch <- detail
-	}
-
 	wg.Done()
 }

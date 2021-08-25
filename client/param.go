@@ -4,42 +4,49 @@ import (
 	"encoding/xml"
 	"log"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 )
 
 type SearchParam struct {
-	Q             string
 	Page          int
-	Sort          string
 	PageSize      int
-	XmlParameters SearchItemsParameters
+	XmlParameters *SearchItemsParameters
 }
 
 type SearchItemsParameters struct {
-	Provider            string  `xml:"Provider"`
-	SearchMethod        string  `xml:"SearchMethod"`
-	CategoryId          *string `xml:"CategoryId,omitempty"`
-	VendorName          *string `xml:"VendorName,omitempty"`
-	VendorId            *string `xml:"VendorId,omitempty"`
-	VendorAreaId        *string `xml:"VendorAreaId,omitempty"`
-	ItemTitle           *string `xml:"ItemTitle,omitempty"`                  // q
-	MinPrice            *int64  `xml:"MinPrice,omitempty"`                   // start price
-	MaxPrice            *int64  `xml:"MaxPrice,omitempty"`                   // end price
-	UseOptimalFrameSize bool    `xml:"UseOptimalFrameSize"`                  // use optimal frame size instead of given
-	Configurators       *Ppath  `xml:"Configurators>Configurator,omitempty"` // ppath for search by brand
+	Provider           string   `xml:"Provider"`
+	SearchMethod       string   `xml:"SearchMethod"`
+	CategoryMode       string   `xml:"CategoryMode"`
+	CurrencyCode       string   `xml:"CurrencyCode"`
+	IsSellAllowed      bool     `xml:"IsSellAllowed"`
+	UseOptimalFameSize bool     `xml:"UseOptimalFameSize"`
+	BrandId            *string  `xml:"BrandId,omitempty"` // ppath
+	CategoryId         *string  `xml:"CategoryId,omitempty"`
+	VendorName         *string  `xml:"VendorName,omitempty"`
+	VendorId           *string  `xml:"VendorId,omitempty"`
+	VendorAreaId       *string  `xml:"VendorAreaId,omitempty"`
+	ItemTitle          *string  `xml:"ItemTitle,omitempty"` // q
+	MinPrice           *float64 `xml:"MinPrice,omitempty"`  // start price
+	MaxPrice           *float64 `xml:"MaxPrice,omitempty"`  // end price
 }
 
 func NewParams() *SearchItemsParameters {
 	return &SearchItemsParameters{
-		Provider:            "taobao",
-		SearchMethod:        "Official",
-		UseOptimalFrameSize: true,
+		Provider:      "Taobao",
+		SearchMethod:  "Official",
+		CategoryMode:  "Nothing",
+		CurrencyCode:  "CNY",
+		IsSellAllowed: true,
+		UseOptimalFameSize: true,
 	}
 }
 
 func (p *SearchItemsParameters) CatId(categoryId string) *SearchItemsParameters {
-	p.CategoryId = &categoryId
+	if categoryId != "" {
+		p.CategoryId = &categoryId
+	}
 	return p
 }
 
@@ -58,13 +65,17 @@ func (p *SearchItemsParameters) VAreaId(vendorAreaId string) *SearchItemsParamet
 	return p
 }
 
-func (p *SearchItemsParameters) StartPrice(startPrice int64) *SearchItemsParameters {
-	p.MinPrice = &startPrice
+func (p *SearchItemsParameters) StartPrice(startPrice float64) *SearchItemsParameters {
+	if startPrice != 0.0 {
+		p.MinPrice = &startPrice
+	}
 	return p
 }
 
-func (p *SearchItemsParameters) EndPrice(endPrice int64) *SearchItemsParameters {
-	p.MaxPrice = &endPrice
+func (p *SearchItemsParameters) EndPrice(endPrice float64) *SearchItemsParameters {
+	if endPrice != 0.0 {
+		p.MaxPrice = &endPrice
+	}
 	return p
 }
 
@@ -74,7 +85,10 @@ func (p *SearchItemsParameters) Q(query string) *SearchItemsParameters {
 }
 
 func (p *SearchItemsParameters) Ppath(ppath string) *SearchItemsParameters {
-	p.Configurators = NewPpath(ppath)
+	if ppath != "" {
+		brandId := strings.Split(ppath, ":")[1]
+		p.BrandId = &brandId
+	}
 	return p
 }
 
@@ -88,36 +102,51 @@ func (p *SearchItemsParameters) ToXml() string {
 	return string(bytes)
 }
 
-type Configurator struct {
-	Ppath Ppath
-}
-
-type Ppath struct {
-	Pid string `xml:"Pid,attr"`
-	Vid string `xml:"Vid,attr"`
-}
-
-func NewPpath(ppath string) *Ppath {
-	paths := strings.Split(ppath, ":")
-	return &Ppath{
-		Pid: paths[0],
-		Vid: paths[1],
-	}
-}
-
-func NewSearchParam(page, pageSize int) SearchParam {
-	return SearchParam{
-		Page:       page,
-		PageSize:   pageSize,
-	}
-}
-
-func (p SearchParam) ToQuery() string {
+func (p SearchParam) ToQuery(apiKey string) string {
 	query := url.Values{}
 
+	query.Add("instanceKey", apiKey)
+	query.Add("language", "ko")
 	query.Add("frameSize", strconv.Itoa(p.PageSize))
 	query.Add("framePosition", strconv.Itoa(p.Page))
 	query.Add("xmlParameters", p.XmlParameters.ToXml())
+	query.Add("blockList", "")
 
 	return query.Encode()
+}
+
+func SearchParamFromUri(page int, uri string) SearchParam {
+	parse, _ := url.Parse(uri)
+	values := parse.Query()
+
+	sp, ep := GetStartEndPrice(values.Get("filter"))
+
+	p := NewParams().Q(values.Get("q")).
+		//CatId(values.Get("cat")).
+		Ppath(values.Get("ppath")).
+		StartPrice(sp).
+		EndPrice(ep)
+
+	return SearchParam{
+		Page:          page,
+		PageSize:      40,
+		XmlParameters: p,
+	}
+}
+
+func GetStartEndPrice(filter string) (startPrice float64, endPrice float64) {
+	reg, _ := regexp.Compile(`reserve_price\[(\d*\.?\d*)?,(\d*\.?\d*)?\]`)
+
+	matched := reg.FindStringSubmatch(filter)
+
+	if len(matched) > 2 {
+		startPrice, _ = strconv.ParseFloat(matched[1], 64)
+		endPrice, _ = strconv.ParseFloat(matched[2], 64)
+	}
+
+	if len(matched) == 2 {
+		startPrice, _ = strconv.ParseFloat(matched[1], 64)
+	}
+
+	return
 }

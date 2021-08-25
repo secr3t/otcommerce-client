@@ -11,55 +11,21 @@ var (
 	imgRegex, _ = regexp.Compile(`//.*/imgextra/.*\.jpg`)
 )
 
-type Detail struct {
-	Result struct {
-		Item   DetailItem   `json:"item"`
-		Status DetailStatus `json:"status"`
-	} `json:"result"`
-	RateLimit *RateLimit
-}
-
 type DetailItem struct {
-	Title    string               `json:"title"`
-	Images   []string             `json:"images"`
-	DescImgs []string             `json:"desc_imgs"`
-	NumIid   string               `json:"num_iid"`
-	Skus     map[string]SkuDetail `json:"skus"`
-	SkuBase  struct {
-		Skus []struct {
-			PropPath string `json:"propPath"`
-			SkuID    string `json:"skuId"`
-		} `json:"skus"`
-		Prop []struct {
-			Values []PropValue `json:"values"`
-			Name   string      `json:"name"`
-			Pid    string      `json:"pid"`
-		} `json:"prop"`
-	} `json:"sku_base"`
-	DescUrl   string `json:"desc_url"`
-	DetailUrl string `json:"detail_url"`
+	Title     string   `json:"title"`
+	Images    []string `json:"images"`
+	DescImgs  []string `json:"desc_imgs"`
+	NumIid    string   `json:"num_iid"`
+	DescUrl   string   `json:"desc_url"`
+	DetailUrl string   `json:"detail_url"`
+	Options   []Option `json:"options"`
 }
 
-type PropValue struct {
-	Vid   string `json:"vid"`
-	Name  string `json:"name"`
-	Image string `json:"image"`
-}
-
-type SkuDetail struct {
-	PromotionPrice string `json:"promotion_price"`
-	Quantity       string `json:"quantity"`
-	Price          string `json:"price"`
-}
-
-type DetailStatus struct {
-	Msg           string `json:"msg"`
-	ExecutionTime string `json:"execution_time"`
-	Code          int    `json:"code"`
-}
-
-func (d Detail) IsSuccess() bool {
-	return d.Result.Status.Msg == "success"
+type Option struct {
+	Img   string  `json:"img"`
+	Name  string  `json:"name"`
+	Price float64 `json:"price"`
+	Value string  `json:"value"`
 }
 
 func (i DetailItem) GetImages() []string {
@@ -97,12 +63,4 @@ func (i DetailItem) GetDescImgs() []string {
 	}
 
 	return descImgs
-}
-
-func (v PropValue) GetImage() string {
-	if v.Image == "" {
-		return ""
-	}
-
-	return httpsPrefix + v.Image
 }
