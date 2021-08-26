@@ -9,6 +9,13 @@ import (
 	"strings"
 )
 
+const (
+	cn = "zh-chs"
+	en = "en"
+)
+
+var regex = regexp.MustCompile(`\p{Han}`)
+
 type SearchParam struct {
 	Page          int
 	PageSize      int
@@ -22,6 +29,7 @@ type SearchItemsParameters struct {
 	CurrencyCode       string   `xml:"CurrencyCode"`
 	IsSellAllowed      bool     `xml:"IsSellAllowed"`
 	UseOptimalFameSize bool     `xml:"UseOptimalFameSize"`
+	LanguageOfQuery    *string  `xml:"LanguageOfQuery"`
 	BrandId            *string  `xml:"BrandId,omitempty"` // ppath
 	CategoryId         *string  `xml:"CategoryId,omitempty"`
 	VendorName         *string  `xml:"VendorName,omitempty"`
@@ -34,11 +42,11 @@ type SearchItemsParameters struct {
 
 func NewParams() *SearchItemsParameters {
 	return &SearchItemsParameters{
-		Provider:      "Taobao",
-		SearchMethod:  "Official",
-		CategoryMode:  "Nothing",
-		CurrencyCode:  "CNY",
-		IsSellAllowed: true,
+		Provider:           "Taobao",
+		SearchMethod:       "Official",
+		CategoryMode:       "Nothing",
+		CurrencyCode:       "CNY",
+		IsSellAllowed:      true,
 		UseOptimalFameSize: true,
 	}
 }
@@ -80,8 +88,23 @@ func (p *SearchItemsParameters) EndPrice(endPrice float64) *SearchItemsParameter
 }
 
 func (p *SearchItemsParameters) Q(query string) *SearchItemsParameters {
+	if hasChinese(query) {
+		p.Cn()
+	} else {
+		p.En()
+	}
 	p.ItemTitle = &query
 	return p
+}
+
+func (p *SearchItemsParameters) Cn() {
+	loq := cn
+	p.LanguageOfQuery = &loq
+}
+
+func (p *SearchItemsParameters) En() {
+	loq := en
+	p.LanguageOfQuery = &loq
 }
 
 func (p *SearchItemsParameters) Ppath(ppath string) *SearchItemsParameters {
@@ -106,7 +129,6 @@ func (p SearchParam) ToQuery(apiKey string) string {
 	query := url.Values{}
 
 	query.Add("instanceKey", apiKey)
-	query.Add("language", "ko")
 	query.Add("frameSize", strconv.Itoa(p.PageSize))
 	query.Add("framePosition", strconv.Itoa(p.Page))
 	query.Add("xmlParameters", p.XmlParameters.ToXml())
@@ -149,4 +171,8 @@ func GetStartEndPrice(filter string) (startPrice float64, endPrice float64) {
 	}
 
 	return
+}
+
+func hasChinese(before string) bool {
+	return regex.MatchString(before)
 }
