@@ -19,7 +19,7 @@ const (
 	ProductUrlPath   = "ExternalItemUrl"
 	MainImgUrlPath   = "MainPictureUrl"
 	PricePath        = "Price.OriginalPrice"
-	ImgsPath         = "Pictures.#.Large.Url"
+	ImgsPath         = "Pictures.#.Url"
 	totalCountPath   = "Result.Items.Items.TotalCount"
 	currentFrameSize = "Result.Items.CurrentFrameSize"
 	ErrorPartialUrl  = "img.alicdn.com/imgextra///img.alicdn.com/imgextra"
