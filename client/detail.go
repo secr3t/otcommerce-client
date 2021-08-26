@@ -201,7 +201,12 @@ func getOptions(r gjson.Result) []model.Option {
 	for combinationId, price := range priceMap {
 		props := combinedMap[combinationId]
 		for _, optionPath := range props {
-			bPrice := optionMap[optionPath].Price
+			var bPrice float64
+			if val, exists := optionMap[optionPath]; exists {
+				bPrice = val.Price
+			} else {
+				continue
+			}
 			if bPrice == 0 {
 				optionMap[optionPath].Price = price
 			} else {
