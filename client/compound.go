@@ -118,7 +118,7 @@ func (c *CompoundClient) SearchAndGetDetailsMultiRequestOneTime(param *SearchPar
 }
 
 func (c *CompoundClient) backgroundDetailRequestItem(wg *sync.WaitGroup, item model.Item, ch chan model.DetailItem, sleepDelta int64) {
-	time.Sleep(time.Millisecond * time.Duration(sleepDelta * 200))
+	time.Sleep(time.Millisecond * time.Duration(sleepDelta * 50))
 	dc := NewDetailClient(c.ApiKey)
 
 	detail, err := dc.GetDetail(item)
