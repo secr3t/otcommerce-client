@@ -23,21 +23,31 @@ type SearchParam struct {
 }
 
 type SearchItemsParameters struct {
-	Provider           string   `xml:"Provider"`
-	SearchMethod       string   `xml:"SearchMethod"`
-	CategoryMode       string   `xml:"CategoryMode"`
-	CurrencyCode       string   `xml:"CurrencyCode"`
-	IsSellAllowed      bool     `xml:"IsSellAllowed"`
-	UseOptimalFameSize bool     `xml:"UseOptimalFameSize"`
-	LanguageOfQuery    *string  `xml:"LanguageOfQuery"`
-	BrandId            *string  `xml:"BrandId,omitempty"` // ppath
-	CategoryId         *string  `xml:"CategoryId,omitempty"`
-	VendorName         *string  `xml:"VendorName,omitempty"`
-	VendorId           *string  `xml:"VendorId,omitempty"`
-	VendorAreaId       *string  `xml:"VendorAreaId,omitempty"`
-	ItemTitle          *string  `xml:"ItemTitle,omitempty"` // q
-	MinPrice           *float64 `xml:"MinPrice,omitempty"`  // start price
-	MaxPrice           *float64 `xml:"MaxPrice,omitempty"`  // end price
+	Provider           string    `xml:"Provider"`
+	SearchMethod       string    `xml:"SearchMethod"`
+	CategoryMode       string    `xml:"CategoryMode"`
+	CurrencyCode       string    `xml:"CurrencyCode"`
+	IsSellAllowed      bool      `xml:"IsSellAllowed"`
+	UseOptimalFameSize bool      `xml:"UseOptimalFameSize"`
+	Features           []Feature `xml:"Features"`
+	LanguageOfQuery    *string   `xml:"LanguageOfQuery"`
+	BrandId            *string   `xml:"BrandId,omitempty"` // ppath
+	CategoryId         *string   `xml:"CategoryId,omitempty"`
+	VendorName         *string   `xml:"VendorName,omitempty"`
+	VendorId           *string   `xml:"VendorId,omitempty"`
+	VendorAreaId       *string   `xml:"VendorAreaId,omitempty"`
+	ItemTitle          *string   `xml:"ItemTitle,omitempty"` // q
+	MinPrice           *float64  `xml:"MinPrice,omitempty"`  // start price
+	MaxPrice           *float64  `xml:"MaxPrice,omitempty"`  // end price
+}
+
+type Feature struct {
+	Name Name `xml:"Feature"`
+}
+
+type Name struct {
+	Name   string `xml:"Name,attr"`
+	Enable bool   `xml:",chardata"`
 }
 
 func NewParams() *SearchItemsParameters {
@@ -48,6 +58,9 @@ func NewParams() *SearchItemsParameters {
 		CurrencyCode:       "CNY",
 		IsSellAllowed:      true,
 		UseOptimalFameSize: true,
+		Features: []Feature{
+			{Name{"InStock", true}},
+		},
 	}
 }
 

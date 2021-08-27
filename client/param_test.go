@@ -31,3 +31,7 @@ func TestSearchParam_ToQuery(t *testing.T) {
 
 	t.Log(sp.ToQuery("xxxxx-xxxx-xxx-xxxx"))
 }
+
+func TestNewParams(t *testing.T) {
+	t.Log(NewParams().ToXml())
+}
