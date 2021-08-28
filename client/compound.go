@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-const defaultLimit = 1000
+const defaultLimit = 200
 
 type CompoundClient struct {
 	ApiKey      string
@@ -69,34 +69,9 @@ func (c *CompoundClient) SearchAndGetDetail(param *SearchParam) ([]model.DetailI
 	return detailItems, nil
 }
 
-func (c *CompoundClient) SearchTilLimit(param *SearchParam) []model.Item {
-	limit := c.SearchLimit
-	sc := NewSearchClient(c.ApiKey)
-
-	result, err := sc.SearchItems(*param)
-
-	if err != nil {
-		return nil
-	}
-
-	items := result.Items
-
-	if limit > result.TotalCount {
-		limit = result.TotalCount
-	}
-
-	for ;limit > len(items); {
-		param.Page += len(result.Items)
-		result, err = sc.SearchItems(*param)
-		items = append(items, result.Items...)
-	}
-
-	return items
-}
-
 func (c *CompoundClient) SearchAndGetDetailsMultiRequestOneTime(param *SearchParam) (chan model.DetailItem, error) {
 	var wg sync.WaitGroup
-	items := c.SearchTilLimit(param)
+	items := NewSearchClient(c.ApiKey).SearchTilLimit(param, c.SearchLimit)
 
 	itemLen := len(items)
 	wg.Add(itemLen)

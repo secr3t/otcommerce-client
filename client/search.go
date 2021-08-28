@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"sync"
 )
 
 const (
@@ -53,6 +54,53 @@ func (c *SearchClient) SearchItems(param SearchParam) (model.SearchResult, error
 	body, _ := ioutil.ReadAll(res.Body)
 
 	return searchResultToItems(body)
+}
+
+func (c *SearchClient) SearchTilLimit(param *SearchParam, limit int)[]model.Item  {
+	result, err := c.SearchItems(*param)
+
+	if err != nil {
+		return nil
+	}
+
+	if limit > result.TotalCount {
+		limit = result.TotalCount
+	}
+
+	itemsChan := make(chan model.Item, limit)
+
+	frameSize := result.FrameSize
+	limit -= frameSize
+
+	for _, item := range result.Items {
+		itemsChan <- item
+	}
+
+	wg := sync.WaitGroup{}
+
+	for ;limit > 0; limit -= frameSize{
+		param.Page += len(result.Items)
+		wg.Add(1)
+		go func() {
+			result, err = c.SearchItems(*param)
+			for _,item := range result.Items {
+				itemsChan <- item
+			}
+			wg.Done()
+		}()
+	}
+
+	go func() {
+		wg.Wait()
+		close(itemsChan)
+	}()
+
+	items := make([]model.Item, 0)
+	for item := range itemsChan {
+		items = append(items, item)
+	}
+
+	return items
 }
 
 func searchResultToItems(json []byte) (model.SearchResult, error) {
