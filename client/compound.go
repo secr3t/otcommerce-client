@@ -70,9 +70,13 @@ func (c *CompoundClient) SearchAndGetDetail(param *SearchParam) ([]model.DetailI
 }
 
 func (c *CompoundClient) SearchAndGetDetailsMultiRequestOneTime(param *SearchParam) (chan model.DetailItem, error) {
-	var wg sync.WaitGroup
 	items := NewSearchClient(c.ApiKey).SearchTilLimit(param, c.SearchLimit)
 
+	return c.GetDetails(items)
+}
+
+func (c *CompoundClient) GetDetails(items []model.Item) (chan model.DetailItem, error) {
+	var wg sync.WaitGroup
 	itemLen := len(items)
 	wg.Add(itemLen)
 
