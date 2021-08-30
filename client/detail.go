@@ -105,17 +105,21 @@ func resultToDetailItem(item model.Item, body []byte, descImgs []string) (*model
 	}
 
 	detailItem.Title = item.Title
-	detailItem.Images = item.Imgs
 	detailItem.DescImgs = descImgs
 	detailItem.NumIid = item.Id
 	detailItem.DetailUrl = item.ProductUrl
 	detailItem.Options = getOptions(r)
+	detailItem.Images = getImgs(r)
 
 	if detailItem.Options == nil {
 		return nil, DetailFail
 	}
 
 	return &detailItem, nil
+}
+
+func getImgs(r gjson.Result) []string {
+	return ConvertImgUrls(r.Get("OtapiItemFullInfo." + ImgsPath).Array())
 }
 
 func descResultToImgs(json []byte) ([]string, error) {
