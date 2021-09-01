@@ -87,8 +87,11 @@ func (c *DetailClient) GetDetail(item model.Item) (*model.DetailItem, error) {
 	uri := GetUri(host, getItemFullInfoWithPromotions, q.Encode())
 
 	req, _ := http.NewRequest("GET", uri, nil)
-	res, _ := http.DefaultClient.Do(req)
+	res, err := http.DefaultClient.Do(req)
 
+	if err != nil {
+		return nil, err
+	}
 	defer res.Body.Close()
 	body, _ := ioutil.ReadAll(res.Body)
 
