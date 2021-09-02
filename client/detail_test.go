@@ -1,6 +1,7 @@
 package client
 
 import (
+	"regexp"
 	"testing"
 )
 
@@ -12,6 +13,14 @@ func TestDescClient_GetDesc(t *testing.T) {
 func TestOptions(t *testing.T) {
 
 }
+
+func TestDescriptionRegex(t *testing.T) {
+	regex := regexp.MustCompile("(?U)img\\.alicdn\\.com.*\\.jpg")
+	desc := regex.FindAllString(description, -1)
+	t.Log(desc)
+}
+
+var description = `<div>https//assets.alicdn.com/kissy/1.0.0/build/imglazyload/spaceball.gif</div><div>https//img.alicdn.com/imgextra/i2/1075266875/O1CN013ZsznH20enSLU0bEr_!!1075266875.jpg</div><div>https//img.alicdn.com/imgextra/i1/1075266875/O1CN0129VGnA20enSMTiCIA_!!1075266875.jpg</div><div>https//img.alicdn.com/imgextra/i4/1075266875/TB2r7IlhpXXXXXdXpXXXXXXXXXX_!!1075266875.jpg</div><div>https//assets.alicdn.com/kissy/1.0.0/build/imglazyload/spaceball.gif</div><div>https//img.alicdn.com/imgextra/i4/1075266875/TB20mD1hpXXXXX.XpXXXXXXXXXX_!!1075266875.jpg</div><div>https//img.alicdn.com/imgextra/i2/1075266875/TB2sD7dhpXXXXbeXXXXXXXXXXXX_!!1075266875.jpg</div><div>https//img.alicdn.com/imgextra/i3/1075266875/TB2ihjQhpXXXXbtXpXXXXXXXXXX_!!1075266875.jpg</div><div>https//img.alicdn.com/imgextra/i1/1075266875/TB2wDIihpXXXXauXXXXXXXXXXXX_!!1075266875.jpg</div><div>https//img.alicdn.com/imgextra/i3/1075266875/TB2zogghpXXXXaGXXXXXXXXXXXX_!!1075266875.jpg</div><div>https//img.alicdn.com/imgextra/i1/1075266875/TB2o.schpXXXXbjXXXXXXXXXXXX_!!1075266875.jpg</div><div>https//img.alicdn.com/imgextra/i1/1075266875/TB25FP4hpXXXXXWXpXXXXXXXXXX_!!1075266875.jpg</div><div>https//img.alicdn.com/imgextra/i4/1075266875/TB2DceijpXXXXb6XXXXXXXXXXXX_!!1075266875.jpg</div><div>https//img.alicdn.com/imgextra/i4/1075266875/TB2lhF0jpXXXXcjXpXXXXXXXXXX_!!1075266875.jpg</div><div>https//img.alicdn.com/imgextra/i2/1075266875/TB2lQGajpXXXXXdXpXXXXXXXXXX_!!1075266875.jpg</div><div>https//assets.alicdn.com/kissy/1.0.0/build/imglazyload/spaceball.gif</div><div>https//img.alicdn.com/imgextra/i1/1075266875/O1CN01feqN9t20enSLacujj_!!1075266875.jpg</div><div>https//img.alicdn.com/imgextra/i1/1075266875/O1CN01kU86s120enSJ4lRV8_!!1075266875.jpg</div><div>https//assets.alicdn.com/kissy/1.0.0/build/imglazyload/spaceball.gif</div><div>https//img.alicdn.com/imgextra/i1/1075266875/TB2F_6.mVXXXXacXpXXXXXXXXXX_!!1075266875.jpg</div><div>https//assets.alicdn.com/kissy/1.0.0/build/imglazyload/spaceball.gif</div><div>https//img.alicdn.com/imgextra/i2/1075266875/O1CN01gs4vAv20enSMKgEbX_!!1075266875.jpg</div><div>https//assets.alicdn.com/kissy/1.0.0/build/imglazyload/spaceball.gif</div><div>https//img.alicdn.com/imgextra/i2/1075266875/TB2hYMrhpXXXXceXXXXXXXXXXXX_!!1075266875.jpg</div><div>https//assets.alicdn.com/kissy/1.0.0/build/imglazyload/spaceball.gif</div><div>https//img.alicdn.com/imgextra/i2/1075266875/TB25ZgltVXXXXaWXXXXXXXXXXXX_!!1075266875.jpg</div>`
 
 var jsonStr = `{
     "ErrorCode": "Ok",

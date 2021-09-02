@@ -2,13 +2,13 @@ package client
 
 import (
 	"errors"
-	"github.com/PuerkitoBio/goquery"
 	"github.com/secr3t/otcommerce-client/model"
 	"github.com/tidwall/gjson"
 	"io/ioutil"
 	"math"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 )
 
@@ -40,6 +40,7 @@ const (
 var (
 	DescFail   = errors.New("get desc failed")
 	DetailFail = errors.New("get detail failed")
+	DescRegex  = regexp.MustCompile("(?U)img\\.alicdn\\.com.*\\.jpg")
 )
 
 type DetailClient struct {
@@ -134,28 +135,15 @@ func descResultToImgs(json []byte) ([]string, error) {
 	}
 
 	desc := strings.Replace(r.Get(DescriptionPath).String(), DescEncodedString, DescDecodedString, -1)
-	desc = strings.Replace(desc, `src="//`, `src="http://`, -1)
+
+	descImgUrls := DescRegex.FindAllString(desc, -1)
 
 	imgs := make([]string, 0)
 
-	doc, _ := goquery.NewDocumentFromReader(strings.NewReader(desc))
-
-	doc.Find("p > img").Each(func(_ int, s *goquery.Selection) {
-			_, exists := s.Attr("usemap")
-			src, _ := s.Attr("src")
-
-			if !exists && !strings.HasSuffix(src, "gif") {
-				imgs = append(imgs, src)
-			}
-		})
-	doc.Find("div > img").Each(func(_ int, s *goquery.Selection) {
-		_, exists := s.Attr("usemap")
-		src, _ := s.Attr("src")
-
-		if !exists && !strings.HasSuffix(src, "gif") {
-			imgs = append(imgs, src)
-		}
-	})
+	for _, imgUrl := range descImgUrls {
+		imgTag := `<img src="http://` + imgUrl + `">`
+		imgs = append(imgs, imgTag)
+	}
 
 	return imgs, nil
 }
