@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
-	"strings"
 )
 
 const (
@@ -40,7 +39,7 @@ const (
 var (
 	DescFail   = errors.New("get desc failed")
 	DetailFail = errors.New("get detail failed")
-	DescRegex  = regexp.MustCompile("(?U)img\\.alicdn\\.com.*\\.jpg")
+	DescRegex  = regexp.MustCompile("img\\.alicdn\\.com/imgextra/\\w{2}/\\w+/[\\w_!]+\\.jpg")
 )
 
 type DetailClient struct {
@@ -134,7 +133,7 @@ func descResultToImgs(json []byte) ([]string, error) {
 		return nil, DescFail
 	}
 
-	desc := strings.Replace(r.Get(DescriptionPath).String(), DescEncodedString, DescDecodedString, -1)
+	desc := r.Get(DescriptionPath).String()
 
 	descImgUrls := DescRegex.FindAllString(desc, -1)
 
