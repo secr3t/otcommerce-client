@@ -39,7 +39,7 @@ const (
 var (
 	DescFail   = errors.New("get desc failed")
 	DetailFail = errors.New("get detail failed")
-	DescRegex  = regexp.MustCompile("img\\.alicdn\\.com/imgextra/\\w{2}/\\w+/[\\w_!]+\\.jpg")
+	DescRegex  = regexp.MustCompile(`img\.alicdn\.com/imgextra/\w{2}/\w+/[\w_!]+\.jpg`)
 )
 
 type DetailClient struct {

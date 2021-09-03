@@ -25,7 +25,6 @@ type SearchParam struct {
 type SearchItemsParameters struct {
 	Provider           string    `xml:"Provider"`
 	SearchMethod       string    `xml:"SearchMethod"`
-	CategoryMode       string    `xml:"CategoryMode"`
 	CurrencyCode       string    `xml:"CurrencyCode"`
 	IsSellAllowed      bool      `xml:"IsSellAllowed"`
 	UseOptimalFameSize bool      `xml:"UseOptimalFameSize"`
@@ -54,7 +53,6 @@ func NewParams() *SearchItemsParameters {
 	return &SearchItemsParameters{
 		Provider:           "Taobao",
 		SearchMethod:       "Official",
-		CategoryMode:       "Nothing",
 		CurrencyCode:       "CNY",
 		IsSellAllowed:      true,
 		UseOptimalFameSize: true,
