@@ -62,7 +62,11 @@ func (c *DetailClient) GetDescImgs(id string) ([]string, error) {
 
 	req, _ := http.NewRequest("GET", uri, nil)
 
-	res, _ := http.DefaultClient.Do(req)
+	res, err := http.DefaultClient.Do(req)
+
+	if err != nil {
+		return nil, err
+	}
 
 	defer res.Body.Close()
 	body, _ := ioutil.ReadAll(res.Body)
