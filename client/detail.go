@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	getItemDescription = `GetItemDescription`
+	getItemDescription = `GetItemOriginalDescription`
 
 	InstanceKeyParam  = `instanceKey`
 	ItemIdParam       = `itemId`
@@ -53,6 +53,16 @@ func NewDetailClient(apiKey string) *DetailClient {
 }
 
 func (c *DetailClient) GetDescImgs(id string) ([]string, error) {
+	imgs, err := c.getDescImgs(id)
+
+	if err == nil && len(imgs) == 0 {
+		imgs, err = c.getDescImgs(id)
+	}
+
+	return imgs, err
+}
+
+func (c *DetailClient) getDescImgs(id string) ([]string, error) {
 	q := url.Values{}
 
 	q.Add(ItemIdParam, id)
@@ -80,6 +90,8 @@ func (c *DetailClient) GetDetail(item model.Item) (*model.DetailItem, error) {
 
 	if err != nil {
 		return nil, err
+	} else if len(descImgs) == 0 {
+		return nil, errors.New("desc is empty")
 	}
 
 	q := url.Values{}
